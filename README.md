@@ -1,87 +1,53 @@
-Xiaomi 11T Agate Kernel
+# Xiaomi 11T Agate Kernel
 
-this is the kernel build i use on my own xiaomi 11t
+Custom kernel project for Xiaomi 11T agate and amber
+Built for my own device and shared after testing
+Focused on a reproducible KernelSU Next and SusFS setup
 
-the goal is to have a kernel that i can build myself modify myself and recover without depending on random prebuilt kernels
+## Current build
+Device Xiaomi 11T
+Codename agate amber
+ROM crDroid 12 10
+Android 16
+Kernel Linux 4 14 336
+KernelSU Next 3 2 0 legacy
+Hook mode manual
+SusFS 1 5 5
 
-current build
+## Working
+Boot
+KernelSU root
+Manual hooks
+SusFS kernel initialization
+SusFS userspace communication
 
-xiaomi 11t
+## Warning
+Use this at your own risk
+Custom kernels can cause bootloops soft bricks data loss or other problems
+Only the setup above was tested
+Keep the boot image from the exact ROM build you are using
+Make sure fastboot and recovery work before flashing
+Do not touch firmware nvram nvdata persist modem or lk because of a kernel problem
+If you cannot recover a failed boot do not flash this build
 
-agate amber
+## Build and flash
+Build instructions are in BUILDING md
+Flash and rollback instructions are in FLASHING md
 
-crdroid 12 10
+## Source notes
+Kernel source is based on the Xiaomi MT6893 development tree
+KernelSU Next is kept as a submodule
+Local KernelSU compatibility changes are stored in the patches directory
+No stock boot images firmware dumps nvram backups or personal device data are included
 
-android 16
-
-linux 4 14 336
-
-kernelsu next 3 2 0 legacy
-
-manual hooks
-
-susfs 1 5 5
-
-current status
-
-boots normally
-
-kernelsu root works
-
-manual hooks work
-
-susfs initializes during boot
-
-susfs userspace communication works
-
-tested on my own device before publishing
-
-important
-
-use this at your own risk
-
-flashing a custom kernel can cause bootloops soft bricks data loss or other problems
-
-this build was tested only on the configuration listed above
-
-do not assume that it will work on another rom another android version another firmware base or another device
-
-always keep a working boot image from the exact rom build you are using
-
-make sure your bootloader is unlocked before doing anything
-
-know how to enter fastboot and recovery before flashing
-
-do not flash firmware nvram nvdata persist modem lk or other unrelated partitions because of a kernel problem
-
-if you do not know how to recover a failed boot then do not flash this kernel
-
-building
-
-clone the source
-
-initialize the kernelsu next submodule
-
-apply the kernelsu compatibility patch from the patches directory
-
-build with agate defconfig
-
-the included build script produces an anykernel flashable zip
-
-credits
-
-xiaomi mt6893 dev
-
-kernelsu next
-
-simonpunk susfs
-
+## Credits
+Xiaomi MT6893 Dev
+KernelSU Next
+simonpunk
+SusFS contributors
 devnoname120
-
 rio004
-
 ziad1101
-
 everyone who worked on the agate kernel and device trees
 
-built and tested by Scaffold47
+Built and tested by Scaffold47
