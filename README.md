@@ -40,13 +40,13 @@ A kernel problem should not require touching firmware, nvram, nvdata, persist, m
 
 ## Building
 
-Build instructions are available in [BUILDING.md](BUILDING.md)
+Build instructions are available in [BUILDING.md](BUILDING.md).
 
-The repository keeps KernelSU Next as a submodule and stores the local compatibility changes in the patches directory so the setup can be reproduced from source.
+KernelSU Next is kept as a submodule and the local compatibility changes are stored in the patches directory. This keeps the source easier to inspect and reproduce.
 
 ## Flashing and rollback
 
-Installation and recovery notes are available in [FLASHING.md](FLASHING.md)
+Installation and recovery notes are available in [FLASHING.md](FLASHING.md).
 
 Keep your original boot image somewhere safe before testing the kernel.
 
@@ -54,7 +54,7 @@ Keep your original boot image somewhere safe before testing the kernel.
 
 The kernel source is based on the Xiaomi MT6893 development tree.
 
-KernelSU Next is integrated through the legacy branch with manual hooks. SusFS support is integrated into the 4.14 kernel tree together with the userspace communication bridge needed by the current setup.
+KernelSU Next is integrated through the legacy branch with manual hooks. SusFS support is integrated into the 4.14 kernel tree together with the userspace communication bridge required by this setup.
 
 No stock boot images, firmware dumps, nvram backups or personal device data are included in this repository.
 
