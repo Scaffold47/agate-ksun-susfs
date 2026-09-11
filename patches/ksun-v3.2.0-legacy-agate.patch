@@ -246,127 +246,126 @@ index bf9c2614..e603e6af 100644
  	ktime_get_boottime_ts64(&ts);
  #else
  	get_monotonic_boottime(&ts);
-+
 diff --git a/kernel/feature/selinux_hide.c b/kernel/feature/selinux_hide.c
-+--- a/kernel/feature/selinux_hide.c
-++++ b/kernel/feature/selinux_hide.c
-+@@ -140,6 +140,16 @@ static int __nocfi my_sel_open_handle_status(struct inode *inode, struct file *f
-+		}
+--- a/kernel/feature/selinux_hide.c
++++ b/kernel/feature/selinux_hide.c
+@@ -140,6 +140,16 @@ static int __nocfi my_sel_open_handle_status(struct inode *inode, struct file *filp)
+ 		}
+ 	}
+ 
++	/*
++	 * Prevent a stale/self-referential original pointer from recursively
++	 * calling this hook until the kernel stack overflows.
++	 */
++	if (unlikely(!orig_sel_open_handle_status ||
++		     orig_sel_open_handle_status == my_sel_open_handle_status)) {
++		pr_err("ksu_selinux_hide: invalid original status open pointer\n");
++		return -EIO;
 +	}
 +
-++	/*
-++	 * Prevent a stale/self-referential original pointer from recursively
-++	 * calling this hook until the kernel stack overflows.
-++	 */
-++	if (unlikely(!orig_sel_open_handle_status ||
-++		     orig_sel_open_handle_status == my_sel_open_handle_status)) {
-++		pr_err("ksu_selinux_hide: invalid original status open pointer\n");
-++		return -EIO;
-++	}
-++
-+	return orig_sel_open_handle_status(inode, filp);
-+}
+ 	return orig_sel_open_handle_status(inode, filp);
+ }
+ 
+@@ -198,6 +208,8 @@ out:
+ 
+ static void hook_selinux_status_open(void)
+ {
++	int ret;
 +
-+@@ -198,6 +208,8 @@ out:
-+
-+static void hook_selinux_status_open(void)
-+{
-++	int ret;
-++
-+	if (orig_sel_open_handle_status)
-+		return;
-+
-+@@ -212,8 +224,20 @@ static void hook_selinux_status_open(void)
-+		return;
-+	}
-+
-++	if (ops->open == my_sel_open_handle_status) {
-++		pr_err("ksu_selinux_hide: refusing self-referential status hook\n");
-++		return;
-++	}
-++
-+	orig_sel_open_handle_status = ops->open;
-+-	patch_fops_open(ops, my_sel_open_handle_status);
-++	ret = patch_fops_open(ops, my_sel_open_handle_status);
-++	if (ret) {
-++		pr_err("ksu_selinux_hide: failed to hook status open: %d\n", ret);
-++		orig_sel_open_handle_status = NULL;
-++		return;
-++	}
-++
-+	pr_info("ksu_selinux_hide: hooked sel_handle_status_ops->open\n");
-+}
-+
-+@@ -220,6 +244,8 @@ static void hook_selinux_status_open(void)
-+
-+static void unhook_selinux_status_open(void)
-+{
-++	int ret;
-++
-+	if (!orig_sel_open_handle_status)
-+		return;
-+
-+@@ -232,7 +258,17 @@ static void unhook_selinux_status_open(void)
+ 	if (orig_sel_open_handle_status)
+ 		return;
+ 
+@@ -212,8 +224,20 @@ static void hook_selinux_status_open(void)
+ 		return;
+ 	}
+ 
++	if (ops->open == my_sel_open_handle_status) {
++		pr_err("ksu_selinux_hide: refusing self-referential status hook\n");
 +		return;
 +	}
 +
-+-	patch_fops_open(ops, orig_sel_open_handle_status);
-++	ret = patch_fops_open(ops, orig_sel_open_handle_status);
-++	if (ret) {
-++		/*
-++		 * Keep the original pointer if restoration fails. Forgetting it can
-++		 * make a later hook cycle capture our own hook as the original.
-++		 */
-++		pr_err("ksu_selinux_hide: failed to restore status open: %d\n", ret);
-++		return;
-++	}
-++
-+	orig_sel_open_handle_status = NULL;
-+	pr_info("ksu_selinux_hide: unhooked sel_handle_status_ops->open\n");
-+}
-+diff --git a/kernel/hook/hook_manager.c b/kernel/hook/hook_manager.c
-+--- a/kernel/hook/hook_manager.c
-++++ b/kernel/hook/hook_manager.c
-+@@ -385,7 +385,6 @@ void __init ksu_syscall_hook_manager_init(void)
-+	ksu_setuid_hook_init();
-+	ksu_sucompat_init();
-+	ksu_avc_spoof_init();
-+-	ksu_selinux_hide_init();
-+}
+ 	orig_sel_open_handle_status = ops->open;
+-	patch_fops_open(ops, my_sel_open_handle_status);
++	ret = patch_fops_open(ops, my_sel_open_handle_status);
++	if (ret) {
++		pr_err("ksu_selinux_hide: failed to hook status open: %d\n", ret);
++		orig_sel_open_handle_status = NULL;
++		return;
++	}
 +
-+void __exit ksu_syscall_hook_manager_exit(void)
-+@@ -405,7 +404,6 @@ void __exit ksu_syscall_hook_manager_exit(void)
-+	ksu_sucompat_exit();
-+	ksu_setuid_hook_exit();
-+	ksu_avc_spoof_exit();
-+-    ksu_selinux_hide_exit();
-+}
-+#else
-+#include "klog.h" // IWYU pragma: keep
-+@@ -418,7 +416,6 @@ void __init ksu_syscall_hook_manager_init(void)
-+	ksu_setuid_hook_init();
-+	ksu_sucompat_init();
-+	ksu_avc_spoof_init();
-+-	ksu_selinux_hide_init();
-+}
+ 	pr_info("ksu_selinux_hide: hooked sel_handle_status_ops->open\n");
+ }
+ 
+@@ -220,6 +244,8 @@ static void hook_selinux_status_open(void)
+ 
+ static void unhook_selinux_status_open(void)
+ {
++	int ret;
 +
-+void __exit ksu_syscall_hook_manager_exit(void)
-+@@ -428,7 +425,6 @@ void __exit ksu_syscall_hook_manager_exit(void)
-+	ksu_sucompat_exit();
-+	ksu_setuid_hook_exit();
-+	ksu_avc_spoof_exit();
-+-    ksu_selinux_hide_exit();
-+}
-+#endif
-+diff --git a/kernel/core/init.c b/kernel/core/init.c
-+--- a/kernel/core/init.c
-++++ b/kernel/core/init.c
-+@@ -183,6 +183,8 @@ void __exit kernelsu_exit(void)
+ 	if (!orig_sel_open_handle_status)
+ 		return;
+ 
+@@ -232,7 +258,17 @@ static void unhook_selinux_status_open(void)
+ 		return;
+ 	}
+ 
+-	patch_fops_open(ops, orig_sel_open_handle_status);
++	ret = patch_fops_open(ops, orig_sel_open_handle_status);
++	if (ret) {
++		/*
++		 * Keep the original pointer if restoration fails. Forgetting it can
++		 * make a later hook cycle capture our own hook as the original.
++		 */
++		pr_err("ksu_selinux_hide: failed to restore status open: %d\n", ret);
++		return;
++	}
 +
-+	ksu_allowlist_exit();
+ 	orig_sel_open_handle_status = NULL;
+ 	pr_info("ksu_selinux_hide: unhooked sel_handle_status_ops->open\n");
+ }
+diff --git a/kernel/hook/hook_manager.c b/kernel/hook/hook_manager.c
+--- a/kernel/hook/hook_manager.c
++++ b/kernel/hook/hook_manager.c
+@@ -385,7 +385,6 @@ void __init ksu_syscall_hook_manager_init(void)
+ 	ksu_setuid_hook_init();
+ 	ksu_sucompat_init();
+ 	ksu_avc_spoof_init();
+-	ksu_selinux_hide_init();
+ }
+ 
+ void __exit ksu_syscall_hook_manager_exit(void)
+@@ -405,7 +404,6 @@ void __exit ksu_syscall_hook_manager_exit(void)
+ 	ksu_sucompat_exit();
+ 	ksu_setuid_hook_exit();
+ 	ksu_avc_spoof_exit();
+-    ksu_selinux_hide_exit();
+ }
+ #else
+ #include "klog.h" // IWYU pragma: keep
+@@ -418,7 +416,6 @@ void __init ksu_syscall_hook_manager_init(void)
+ 	ksu_setuid_hook_init();
+ 	ksu_sucompat_init();
+ 	ksu_avc_spoof_init();
+-	ksu_selinux_hide_init();
+ }
+ 
+ void __exit ksu_syscall_hook_manager_exit(void)
+@@ -428,7 +425,6 @@ void __exit ksu_syscall_hook_manager_exit(void)
+ 	ksu_sucompat_exit();
+ 	ksu_setuid_hook_exit();
+ 	ksu_avc_spoof_exit();
+-    ksu_selinux_hide_exit();
+ }
+ #endif
+diff --git a/kernel/core/init.c b/kernel/core/init.c
+--- a/kernel/core/init.c
++++ b/kernel/core/init.c
+@@ -183,6 +183,8 @@ void __exit kernelsu_exit(void)
+ 
+ 	ksu_allowlist_exit();
+ 
++	ksu_selinux_hide_exit();
 +
-++	ksu_selinux_hide_exit();
-++
-+	ksu_sulog_exit();
-+
-+	ksu_adb_root_exit();
+ 	ksu_sulog_exit();
+ 
+ 	ksu_adb_root_exit();
