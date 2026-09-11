@@ -56,8 +56,6 @@ The kernel source is based on the Xiaomi MT6893 development tree.
 
 KernelSU Next is integrated through the legacy branch with manual hooks. SusFS support is integrated into the 4.14 kernel tree together with the userspace communication bridge required by this setup.
 
-No stock boot images, firmware dumps, nvram backups or personal device data are included in this repository.
-
 ## Credits
 
 Thanks to Xiaomi MT6893 Dev, KernelSU Next, simonpunk, the SusFS contributors, devnoname120, rio004, ziad1101 and everyone who worked on the agate kernel and device trees.
