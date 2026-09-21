@@ -1,87 +1,117 @@
-Xiaomi 11T Agate Kernel
+# Hydrogen Kernel for Xiaomi 11T (agate)
 
-this is the kernel build i use on my own xiaomi 11t
+This repository contains the kernel build I use on my own Xiaomi 11T. The aim is simple: keep the source, the KernelSU integration, the build process and the recovery path under my control instead of depending on random prebuilt kernels.
 
-the goal is to have a kernel that i can build myself modify myself and recover without depending on random prebuilt kernels
+It is still an agate-specific kernel tree. The reusable KernelSU work lives separately in my KernelSU-Next fork so it can be maintained without tying it to one device.
 
-current build
+## Current status
 
-xiaomi 11t
+The current branch has been tested on a Xiaomi 11T with the following setup:
 
-agate amber
+- Device: Xiaomi 11T
+- Codename: agate
+- Kernel tree: Linux 4.14.336
+- ROM used for testing: crDroid 12.10 / Android 16
+- KernelSU Next: legacy, built-in, manual hooks
+- KernelSU userspace compatibility: UAPI 4
+- SUSFS: v1.5.5, NON-GKI
 
-crdroid 12 10
+The kernel currently boots normally on my device, KernelSU root works, manual hooks work, SUSFS initializes correctly, and the SUSFS userspace queries used by KernelSU Next Manager 3.4.0 work.
 
-android 16
+## KernelSU integration
 
-linux 4 14 336
+KernelSU-Next is kept as a git submodule:
 
-kernelsu next 3 2 0 legacy
+- Fork: https://github.com/Scaffold47/KernelSU-Next
+- Branch: `legacy-uapi4-susfs-compat`
 
-manual hooks
+That branch contains the reusable compatibility work for older built-in/manual-hook kernels. The agate tree only carries the device/kernel integration around it.
 
-susfs 1 5 5
+The current compatibility work includes:
 
-current status
+- UAPI 3 scoped su-session file descriptor support
+- post-exec task_work handling for legacy 4.14 exec flow
+- UAPI 4 userspace compatibility
+- legacy SELinux hide fixes
+- SUSFS v1.5.5 compatibility with the KernelSU Next 3.4 reboot ABI
+- correct built-in runtime reporting without pretending to be a bundled LKM build
 
-boots normally
+This is intentionally a backport on top of the legacy KernelSU line, not a wholesale merge of the current development branch.
 
-kernelsu root works
+## Reproducible build
 
-manual hooks work
+The published tree has been tested from a completely fresh clone with a fresh submodule checkout and an empty output directory.
 
-susfs initializes during boot
+Clone it with the submodule:
 
-susfs userspace communication works
+```bash
+git clone --branch agate-ksun-susfs --recurse-submodules \
+  https://github.com/Scaffold47/agate-ksun-susfs.git
 
-tested on my own device before publishing
+cd agate-ksun-susfs
+```
 
-important
+Build:
 
-use this at your own risk
+```bash
+./build.sh agate
+```
 
-flashing a custom kernel can cause bootloops soft bricks data loss or other problems
+The build script uses Proton Clang 15 and creates an AnyKernel3 flashable zip named similar to:
 
-this build was tested only on the configuration listed above
+```text
+HydrogenKernel-agate-YYYYMMDD-HHMM.zip
+```
 
-do not assume that it will work on another rom another android version another firmware base or another device
+A clean-clone build was verified after publishing the current source. The firmware dependency in the old 4.14 build system was also fixed so a successful build no longer depends on generated files left behind by an older working tree.
 
-always keep a working boot image from the exact rom build you are using
+## Submodule behavior
 
-make sure your bootloader is unlocked before doing anything
+The repository pins KernelSU-Next to an exact gitlink commit. The branch entry in `.gitmodules` documents the branch that is maintained for this integration, but a normal `--recurse-submodules` clone checks out the exact commit recorded by the kernel tree.
 
-know how to enter fastboot and recovery before flashing
+This is intentional. Updating the compatibility branch does not silently change an already published kernel snapshot.
 
-do not flash firmware nvram nvdata persist modem lk or other unrelated partitions because of a kernel problem
+## Flashing and recovery
 
-if you do not know how to recover a failed boot then do not flash this kernel
+This is a custom kernel. Flashing it can cause a bootloop, soft brick, data loss or other problems if it is used on the wrong base or if recovery is not prepared in advance.
 
-building
+Before flashing:
 
-clone the source
+- keep a known-working boot image from the exact ROM build currently installed
+- make sure the bootloader is unlocked
+- know how to enter fastboot and recovery
+- have a working ADB/fastboot environment available
+- do not touch firmware, NVRAM, NVDATA, persist, modem, LK or unrelated partitions to recover from a kernel-only problem
 
-initialize the kernelsu next submodule
+This source has been tested on my own setup. Do not assume it will work unchanged on another ROM, Android version, firmware base or device.
 
-apply the kernelsu compatibility patch from the patches directory
+## Repository scope
 
-build with agate defconfig
+Device-specific work belongs here:
 
-the included build script produces an anykernel flashable zip
+- Xiaomi 11T / agate kernel source
+- device defconfig
+- MediaTek/Xiaomi kernel integration
+- firmware build handling
+- build and packaging scripts
+- agate-specific KernelSU integration points
 
-credits
+Generic KernelSU compatibility work belongs in the separate KernelSU-Next fork:
 
-xiaomi mt6893 dev
+https://github.com/Scaffold47/KernelSU-Next/tree/legacy-uapi4-susfs-compat
 
-kernelsu next
+That separation is deliberate. It keeps the reusable legacy KernelSU work useful outside this one device tree while keeping this repository honest about what is actually agate-specific.
 
-simonpunk susfs
+## Credits
 
-devnoname120
+This work builds on code and research from many projects and developers, including:
 
-rio004
+- Xiaomi MT6893 device/kernel developers
+- KernelSU Next contributors
+- SUSFS by simonpunk
+- devnoname120
+- rio004
+- ziad1101
+- everyone who has contributed to the agate/amber kernel and device trees
 
-ziad1101
-
-everyone who worked on the agate kernel and device trees
-
-built and tested by Scaffold47
+Built, tested and maintained for my own device by Scaffold47.
