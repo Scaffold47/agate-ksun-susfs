@@ -43,7 +43,7 @@ wordsize_deps := $(wildcard include/config/64bit.h include/config/32bit.h \
 		firmware/Makefile)
 
 $(patsubst %,$(obj)/%.gen.S, $(fw-external-y)): %: $(wordsize_deps) \
-		include/config/extra/firmware/dir.h
+		include/config/auto.conf
 	$(call cmd,fwbin,$(fwabs)/$(patsubst $(obj)/%.gen.S,%,$@))
 
 # The .o files depend on the binaries directly; the .S files don't.

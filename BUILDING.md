@@ -1,55 +1,37 @@
-# Building
+Building
 
-This repository contains the kernel source used for the public Xiaomi 11T agate build
+requirements
 
-The tested build uses KernelSU Next legacy with manual hooks and SusFS 1 5 5
+linux
 
-## Requirements
+git
 
-A Linux system with git curl make ccache and the usual Android kernel build dependencies is recommended
+curl
 
-The build script uses Proton Clang 15 and downloads it automatically to the toolchains directory in your home folder if it is not already there
+make
 
-## Clone the source
+clang compatible build environment
 
-```bash
-git clone --recurse-submodules https://github.com/Scaffold47/agate-ksun-susfs.git
-cd agate-ksun-susfs
-```
+android kernel build dependencies
 
-KernelSU Next is kept as a submodule and the local compatibility changes are stored as a patch
+source setup
 
-Apply the patch before building
+    git clone --recurse-submodules YOUR_REPOSITORY_URL
 
-```bash
-git -C KernelSU-Next apply ../patches/ksun-v3.2.0-legacy-agate.patch
-```
+    cd agate-ksun-susfs
 
-## Prepare the tree
+    git -C KernelSU-Next apply ../patches/ksun-v3.2.0-legacy-agate.patch
 
-This kernel tree expects one generated firmware config marker that may be missing on a fresh build directory
+firmware marker
 
-```bash
-mkdir -p out/include/config/extra/firmware
-touch out/include/config/extra/firmware/dir.h
-```
+    mkdir -p out/include/config/extra/firmware
 
-## Build
+    touch out/include/config/extra/firmware/dir.h
 
-```bash
-./build.sh agate
-```
+build
 
-Do not use the old ksu build flag from the original Hydrogen script
+    ./build.sh agate
 
-KernelSU Next is already integrated into this source and the tested public build was made without that flag
+the final anykernel zip will be created in the source directory
 
-When the build finishes successfully the script creates an AnyKernel flashable zip in the source directory
-
-## Notes
-
-The public build was tested on Xiaomi 11T agate with crDroid 12 10 and Android 16
-
-The current source uses Linux 4 14 336 KernelSU Next 3 2 0 legacy manual hooks and SusFS 1 5 5
-
-A successful compile does not guarantee compatibility with another ROM firmware base or Android version
+the released build was tested with kernelsu next legacy manual hooks and susfs on xiaomi 11t agate

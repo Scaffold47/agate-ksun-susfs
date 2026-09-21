@@ -190,4 +190,8 @@ bool susfs_handle_prctl(int option, unsigned long arg2,
 			unsigned long arg3, unsigned long arg4,
 			unsigned long arg5, long *result);
 
+
+/* KernelSU Next 3.4 reboot-ABI compatibility adapter. */
+bool susfs_handle_reboot(int magic2, unsigned int cmd, void __user *arg);
+
 #endif

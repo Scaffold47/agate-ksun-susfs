@@ -8,6 +8,78 @@
 
 #define KERNEL_SU_OPTION 0xDEADBEEF
 
+#define SUSFS_REBOOT_MAGIC 0xFAFAFAFA
+#define SUSFS_REBOOT_MAX_VERSION 16
+#define SUSFS_REBOOT_MAX_VARIANT 16
+#define SUSFS_REBOOT_FEATURES_SIZE 8192
+
+struct susfs_reboot_version {
+	char version[SUSFS_REBOOT_MAX_VERSION];
+	int err;
+};
+
+struct susfs_reboot_variant {
+	char variant[SUSFS_REBOOT_MAX_VARIANT];
+	int err;
+};
+
+struct susfs_reboot_features {
+	char features[SUSFS_REBOOT_FEATURES_SIZE];
+	int err;
+};
+
+/*
+ * KernelSU Next 3.4 userspace expects the reboot ABI to return a textual
+ * feature list.  SUSFS v1.5.5's native prctl ABI returns a u64 bitmask,
+ * so keep the old ABI intact and expose a format adapter only here.
+ */
+static const char susfs_reboot_feature_list[] =
+	""
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	"CONFIG_KSU_SUSFS_SUS_PATH\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+	"CONFIG_KSU_SUSFS_SUS_MOUNT\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT
+	"CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT
+	"CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
+	"CONFIG_KSU_SUSFS_SUS_KSTAT\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_SUS_OVERLAYFS
+	"CONFIG_KSU_SUSFS_SUS_OVERLAYFS\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
+	"CONFIG_KSU_SUSFS_TRY_UMOUNT\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT
+	"CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
+	"CONFIG_KSU_SUSFS_SPOOF_UNAME\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_ENABLE_LOG
+	"CONFIG_KSU_SUSFS_ENABLE_LOG\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
+	"CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
+	"CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
+	"CONFIG_KSU_SUSFS_OPEN_REDIRECT\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT
+	"CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT\n"
+#endif
+	;
+
+
 extern bool is_ksu_domain(void);
 extern bool is_zygote(const struct cred *cred);
 #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
@@ -213,5 +285,78 @@ bool susfs_handle_prctl(int option, unsigned long arg2,
 	}
 
 	susfs_put_error(arg5, error);
+	return true;
+}
+
+bool susfs_handle_reboot(int magic2, unsigned int cmd, void __user *arg)
+{
+	if ((u32)magic2 != SUSFS_REBOOT_MAGIC)
+		return false;
+
+	switch (cmd) {
+	case CMD_SUSFS_SHOW_VERSION:
+	case CMD_SUSFS_SHOW_ENABLED_FEATURES:
+	case CMD_SUSFS_SHOW_VARIANT:
+		break;
+	default:
+		return false;
+	}
+
+	/*
+	 * Match the existing v1.5.5 bridge security model: only root gets a
+	 * response.  Non-root callers leave their pre-seeded err value intact.
+	 */
+	if (current_uid().val != 0 || !arg)
+		return true;
+
+	switch (cmd) {
+	case CMD_SUSFS_SHOW_VERSION: {
+		struct susfs_reboot_version __user *info = arg;
+		int err = 0;
+
+		if (copy_to_user(info->version, SUSFS_VERSION,
+				 sizeof(SUSFS_VERSION)))
+			err = -EFAULT;
+
+		if (put_user(err, &info->err))
+			pr_info("susfs: reboot ABI version err copy failed\n");
+		break;
+	}
+
+	case CMD_SUSFS_SHOW_VARIANT: {
+		struct susfs_reboot_variant __user *info = arg;
+		int err = 0;
+
+		if (copy_to_user(info->variant, SUSFS_VARIANT,
+				 sizeof(SUSFS_VARIANT)))
+			err = -EFAULT;
+
+		if (put_user(err, &info->err))
+			pr_info("susfs: reboot ABI variant err copy failed\n");
+		break;
+	}
+
+	case CMD_SUSFS_SHOW_ENABLED_FEATURES: {
+		struct susfs_reboot_features __user *info = arg;
+		int err = 0;
+
+		if (sizeof(susfs_reboot_feature_list) >
+		    SUSFS_REBOOT_FEATURES_SIZE) {
+			err = -EOVERFLOW;
+		} else if (copy_to_user(info->features,
+					susfs_reboot_feature_list,
+					sizeof(susfs_reboot_feature_list))) {
+			err = -EFAULT;
+		}
+
+		if (put_user(err, &info->err))
+			pr_info("susfs: reboot ABI features err copy failed\n");
+		break;
+	}
+
+	default:
+		break;
+	}
+
 	return true;
 }

@@ -1,37 +1,45 @@
-# Flashing
+Flashing
 
-This build was tested on crDroid 12.10 with Android 16 on the Xiaomi 11T agate and amber device family.
+this build was tested on crdroid 12 10 for xiaomi 11t agate amber
 
-Use it at your own risk. A custom kernel can cause a bootloop, soft brick, data loss or other problems if something goes wrong.
+use this at your own risk
 
-## Before flashing
+a custom kernel can cause a bootloop soft brick data loss or other problems
 
-Your bootloader must already be unlocked.
+before flashing
 
-Keep a copy of the boot image from the exact ROM build you are using. Make sure both fastboot and recovery work before you start, and know which slot is active on your device.
+use an unlocked bootloader
 
-Do not flash unrelated firmware partitions while testing this kernel.
+keep the boot image from the exact rom build you are currently using
 
-## Installation
+make sure fastboot works
 
-Boot into recovery and open the update menu.
+make sure recovery works
 
-Choose Apply from ADB, then sideload the kernel zip from your computer.
+know which slot is active
 
-```bash
-adb sideload your_kernel_file.zip
-```
+do not touch unrelated firmware partitions
 
-When the installation finishes, reboot normally.
+installation
 
-The included AnyKernel package repacks the current boot image and replaces the kernel while keeping the existing ramdisk layout.
+boot into recovery
 
-## Rollback
+open apply update
 
-If the device does not boot, enter fastboot and restore the boot image from the exact ROM build you were using.
+open apply from adb
 
-If you already have a known working rescue slot, switching back to that slot is also an option.
+sideload the kernel zip
 
-A kernel problem should not require restoring nvram, nvdata, persist, modem, lk or other firmware partitions.
+reboot after installation finishes
 
-Do not use a random boot image from another ROM or another version. The safest rollback image is always the one from your exact installed ROM build.
+rollback
+
+if the device does not boot enter fastboot
+
+restore the boot image from the exact rom build you were using
+
+if you have a known working rescue slot you can also return to that slot
+
+kernel problems do not require restoring nvram nvdata persist modem lk or other firmware partitions
+
+never use random boot images from another rom version
